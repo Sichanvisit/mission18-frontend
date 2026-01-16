@@ -1,8 +1,7 @@
-# frontend/app.py
 import streamlit as st
 import requests
 
-# 백엔드 주소 (FastAPI 기본 주소)
+# [수정] 본인의 Render 백엔드 URL을 입력하세요.
 BACKEND_URL = "https://mission18-backend.onrender.com"
 
 st.set_page_config(page_title="영화 리뷰 AI 서비스", layout="wide")
@@ -21,7 +20,7 @@ with tab1:
             if not movies:
                 st.info("등록된 영화가 없습니다. '영화 추가' 탭에서 등록해주세요.")
             else:
-                cols = st.columns(3) # 3열로 배치
+                cols = st.columns(3)  # 3열로 배치
                 for idx, movie in enumerate(movies):
                     with cols[idx % 3]:
                         if movie['poster_url']:
@@ -42,19 +41,20 @@ with tab2:
         director = st.text_input("감독")
         genre_list = st.multiselect("장르 (여러 개 선택 가능)", 
                             ["액션", "로맨스", "SF", "공포", "드라마", "애니메이션", "코미디", "스릴러", "판타지"])
-        poster_url = st.text_input("포스터 이미지 URL (나무위키 등에서 우클릭->이미지 주소 복사)")
+        poster_url = st.text_input("포스터 이미지 URL")
         
         submitted = st.form_submit_button("영화 등록하기")
         if submitted:
             new_movie = {
                 "title": title,
                 "director": director,
-                "genre": ", ".join(genre_list), # 리스트를 문자열로 변환하여 전송
+                "genre": ", ".join(genre_list),
                 "poster_url": poster_url
             }
             res = requests.post(f"{BACKEND_URL}/movies", json=new_movie)
             if res.status_code == 200:
                 st.success(f"'{title}' 등록 성공!")
+                st.rerun()  # 목록 갱신을 위해 재실행
             else:
                 st.error("등록 실패")
 
@@ -62,7 +62,6 @@ with tab2:
 with tab3:
     st.header("리뷰 작성 및 AI 분석")
     
-    # 영화 선택을 위해 목록 다시 불러오기
     try:
         movies_res = requests.get(f"{BACKEND_URL}/movies")
         movies_data = movies_res.json() if movies_res.status_code == 200 else []
@@ -70,17 +69,14 @@ with tab3:
         if not movies_data:
             st.warning("먼저 영화를 등록해주세요.")
         else:
-            # 선택 박스 (ID와 제목 표시)
             movie_options = {f"{m['id']}. {m['title']}": m['id'] for m in movies_data}
             selected_movie_label = st.selectbox("리뷰할 영화 선택", list(movie_options.keys()))
             selected_movie_id = movie_options[selected_movie_label]
 
-            # 리뷰 입력 폼
             st.subheader("리뷰 쓰기")
             with st.form("review_form"):
                 user_name = st.text_input("작성자 이름")
                 content = st.text_area("리뷰 내용 (AI가 감정을 분석합니다)")
-                
                 review_submit = st.form_submit_button("리뷰 등록")
                 
                 if review_submit:
@@ -89,17 +85,14 @@ with tab3:
                         "user_name": user_name,
                         "content": content
                     }
-                    # 백엔드로 전송
                     res = requests.post(f"{BACKEND_URL}/reviews", json=new_review)
                     if res.status_code == 200:
                         result = res.json()
                         st.success("리뷰 등록 완료!")
-                        # AI 분석 결과 보여주기
                         st.info(f"🤖 AI 분석 결과: **{result['sentiment']}** ({result['score']}%)")
                     else:
                         st.error("리뷰 등록 실패")
 
-            # 해당 영화의 리뷰 목록 보여주기
             st.divider()
             st.subheader(f"'{selected_movie_label}'의 리뷰 목록")
             reviews_res = requests.get(f"{BACKEND_URL}/reviews/{selected_movie_id}")
@@ -108,7 +101,7 @@ with tab3:
                 for rev in reviews:
                     with st.chat_message("user"):
                         st.write(f"**{rev['user_name']}**: {rev['content']}")
-                        # 긍정/부정에 따른 색상 표시
+                        # 감정에 따른 색상 적용 (긍정: 파랑, 그 외: 빨강)
                         color = "blue" if rev['sentiment'] == "긍정" else "red"
                         st.markdown(f":{color}[AI 분석: {rev['sentiment']} ({rev['score']}%) ]")
     except Exception as e:
