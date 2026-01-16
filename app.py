@@ -3,7 +3,7 @@ import streamlit as st
 import requests
 
 # 백엔드 주소 (FastAPI 기본 주소)
-BACKEND_URL = "http://127.0.0.1:8000"
+BACKEND_URL = "https://mission18-backend.onrender.com"
 
 st.set_page_config(page_title="영화 리뷰 AI 서비스", layout="wide")
 st.title("🎬 영화 정보 & AI 감성 리뷰 서비스")
